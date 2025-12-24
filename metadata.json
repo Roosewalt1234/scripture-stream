@@ -1,0 +1,8 @@
+{
+  "name": "ScriptureStream",
+  "description": "A high-performance, minimalist Bible reading platform featuring multiple translations, AI-powered insights, and personalized study tools.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

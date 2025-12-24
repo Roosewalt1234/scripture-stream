@@ -1,0 +1,105 @@
+
+import { BibleBook, Translation } from './types';
+
+export const BIBLE_BOOKS: BibleBook[] = [
+  // Old Testament
+  { name: 'Genesis', chapters: 50, category: 'Old Testament' },
+  { name: 'Exodus', chapters: 40, category: 'Old Testament' },
+  { name: 'Leviticus', chapters: 27, category: 'Old Testament' },
+  { name: 'Numbers', chapters: 36, category: 'Old Testament' },
+  { name: 'Deuteronomy', chapters: 34, category: 'Old Testament' },
+  { name: 'Joshua', chapters: 24, category: 'Old Testament' },
+  { name: 'Judges', chapters: 21, category: 'Old Testament' },
+  { name: 'Ruth', chapters: 4, category: 'Old Testament' },
+  { name: '1 Samuel', chapters: 31, category: 'Old Testament' },
+  { name: '2 Samuel', chapters: 24, category: 'Old Testament' },
+  { name: '1 Kings', chapters: 22, category: 'Old Testament' },
+  { name: '2 Kings', chapters: 25, category: 'Old Testament' },
+  { name: '1 Chronicles', chapters: 29, category: 'Old Testament' },
+  { name: '2 Chronicles', chapters: 36, category: 'Old Testament' },
+  { name: 'Ezra', chapters: 10, category: 'Old Testament' },
+  { name: 'Nehemiah', chapters: 13, category: 'Old Testament' },
+  { name: 'Esther', chapters: 10, category: 'Old Testament' },
+  { name: 'Job', chapters: 42, category: 'Old Testament' },
+  { name: 'Psalms', chapters: 150, category: 'Old Testament' },
+  { name: 'Proverbs', chapters: 31, category: 'Old Testament' },
+  { name: 'Ecclesiastes', chapters: 12, category: 'Old Testament' },
+  { name: 'Song of Solomon', chapters: 8, category: 'Old Testament' },
+  { name: 'Isaiah', chapters: 66, category: 'Old Testament' },
+  { name: 'Jeremiah', chapters: 52, category: 'Old Testament' },
+  { name: 'Lamentations', chapters: 5, category: 'Old Testament' },
+  { name: 'Ezekiel', chapters: 48, category: 'Old Testament' },
+  { name: 'Daniel', chapters: 12, category: 'Old Testament' },
+  { name: 'Hosea', chapters: 14, category: 'Old Testament' },
+  { name: 'Joel', chapters: 3, category: 'Old Testament' },
+  { name: 'Amos', chapters: 9, category: 'Old Testament' },
+  { name: 'Obadiah', chapters: 1, category: 'Old Testament' },
+  { name: 'Jonah', chapters: 4, category: 'Old Testament' },
+  { name: 'Micah', chapters: 7, category: 'Old Testament' },
+  { name: 'Nahum', chapters: 3, category: 'Old Testament' },
+  { name: 'Habakkuk', chapters: 3, category: 'Old Testament' },
+  { name: 'Zephaniah', chapters: 3, category: 'Old Testament' },
+  { name: 'Haggai', chapters: 2, category: 'Old Testament' },
+  { name: 'Zechariah', chapters: 14, category: 'Old Testament' },
+  { name: 'Malachi', chapters: 4, category: 'Old Testament' },
+  // New Testament
+  { name: 'Matthew', chapters: 28, category: 'New Testament' },
+  { name: 'Mark', chapters: 16, category: 'New Testament' },
+  { name: 'Luke', chapters: 24, category: 'New Testament' },
+  { name: 'John', chapters: 21, category: 'New Testament' },
+  { name: 'Acts', chapters: 28, category: 'New Testament' },
+  { name: 'Romans', chapters: 16, category: 'New Testament' },
+  { name: '1 Corinthians', chapters: 16, category: 'New Testament' },
+  { name: '2 Corinthians', chapters: 13, category: 'New Testament' },
+  { name: 'Galatians', chapters: 6, category: 'New Testament' },
+  { name: 'Ephesians', chapters: 6, category: 'New Testament' },
+  { name: 'Philippians', chapters: 4, category: 'New Testament' },
+  { name: 'Colossians', chapters: 4, category: 'New Testament' },
+  { name: '1 Thessalonians', chapters: 5, category: 'New Testament' },
+  { name: '2 Thessalonians', chapters: 3, category: 'New Testament' },
+  { name: '1 Timothy', chapters: 6, category: 'New Testament' },
+  { name: '2 Timothy', chapters: 4, category: 'New Testament' },
+  { name: 'Titus', chapters: 3, category: 'New Testament' },
+  { name: 'Philemon', chapters: 1, category: 'New Testament' },
+  { name: 'Hebrews', chapters: 13, category: 'New Testament' },
+  { name: 'James', chapters: 5, category: 'New Testament' },
+  { name: '1 Peter', chapters: 5, category: 'New Testament' },
+  { name: '2 Peter', chapters: 3, category: 'New Testament' },
+  { name: '1 John', chapters: 5, category: 'New Testament' },
+  { name: '2 John', chapters: 1, category: 'New Testament' },
+  { name: '3 John', chapters: 1, category: 'New Testament' },
+  { name: 'Jude', chapters: 1, category: 'New Testament' },
+  { name: 'Revelation', chapters: 22, category: 'New Testament' },
+];
+
+export const TRANSLATIONS = [
+  { id: Translation.NIV, name: 'New International Version' },
+  { id: Translation.KJV, name: 'King James Version' },
+  { id: Translation.ESV, name: 'English Standard Version' },
+  { id: Translation.NLT, name: 'New Living Translation' },
+  { id: Translation.NKJV, name: 'New King James Version' },
+];
+
+export const THEME_COLORS = {
+  light: {
+    bg: 'bg-white',
+    text: 'text-gray-900',
+    secondary: 'text-gray-600',
+    border: 'border-gray-100',
+    highlight: 'bg-yellow-100'
+  },
+  dark: {
+    bg: 'bg-zinc-950',
+    text: 'text-zinc-100',
+    secondary: 'text-zinc-400',
+    border: 'border-zinc-800',
+    highlight: 'bg-yellow-900/30'
+  },
+  sepia: {
+    bg: 'bg-[#f4ecd8]',
+    text: 'text-[#433422]',
+    secondary: 'text-[#6d5b4b]',
+    border: 'border-[#e0d6c3]',
+    highlight: 'bg-[#d8c5a2]'
+  }
+};
