@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -8,7 +8,7 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#fdfaf6] text-[#2c2420] font-serif overflow-x-hidden">
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center text-center px-6 overflow-hidden">
+      <section className="relative min-h-[130vh] flex items-center justify-center text-center px-6 overflow-hidden">
         {/* Background Atmosphere */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-[#fdfaf6] z-10"></div>
@@ -19,9 +19,14 @@ const LandingPage: React.FC = () => {
           />
         </div>
 
-        <div className="relative z-20 max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <div className="relative z-20 max-w-5xl mx-auto pt-32 pb-20 space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          <img 
+            src="logo.png" 
+            alt="ScriptureStream Logo" 
+            className="w-24 h-24 md:w-32 md:h-32 mx-auto drop-shadow-2xl animate-pulse duration-[3000ms]" 
+          />
           <div className="inline-block px-4 py-1.5 border border-[#d4af37] text-[#b48a04] text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase rounded-full bg-white/50 backdrop-blur-md">
-            Est. 2025 • Sacred Study
+            Est. 2010 • Scripture Stream
           </div>
           <h1 className="text-4xl md:text-7xl lg:text-8xl font-medium tracking-tight leading-[1.1]">
             Connect with the <span className="italic">Eternal Word</span>.
@@ -32,20 +37,25 @@ const LandingPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6 px-4">
             <button 
               onClick={() => navigate('/bible/NIV/John/3')}
-              className="w-full sm:w-auto px-10 py-5 bg-[#2c2420] text-white rounded-full text-lg font-medium hover:bg-black transition-all shadow-2xl shadow-black/20 active:scale-95 font-sans"
+              className="w-full sm:w-auto px-8 py-3.5 bg-[#2c2420] text-white rounded-full text-lg font-medium hover:bg-black transition-all shadow-2xl shadow-black/20 active:scale-95 font-sans"
             >
               Begin Your Journey
             </button>
             <button 
-              className="w-full sm:w-auto px-10 py-5 bg-white border border-[#e0d6c3] text-[#2c2420] rounded-full text-lg font-medium hover:bg-gray-50 transition-all active:scale-95 font-sans"
+              className="w-full sm:w-auto px-8 py-3.5 bg-white border border-[#e0d6c3] text-[#2c2420] rounded-full text-lg font-medium hover:bg-gray-50 transition-all active:scale-95 font-sans"
             >
               Learn More
+            </button>
+            <button 
+              className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-blue-600 to-red-600 text-white rounded-full text-lg font-medium hover:from-blue-700 hover:to-red-700 transition-all shadow-2xl shadow-blue-500/20 active:scale-95 font-sans"
+            >
+              Support Us
             </button>
           </div>
         </div>
 
         {/* Floating Scripture Decoration */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-[10px] md:text-xs italic opacity-40 tracking-widest text-center w-full px-6">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 text-[10px] md:text-xs italic opacity-40 tracking-widest text-center w-full px-6">
           "Your word is a lamp to my feet and a light to my path." — Psalm 119:105
         </div>
       </section>
@@ -146,9 +156,12 @@ const LandingPage: React.FC = () => {
       {/* Footer / Call to Communion */}
       <footer className="py-20 md:py-24 px-6 bg-[#fdfaf6] border-t border-[#e0d6c3]">
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center space-y-12">
-          <div className="text-2xl md:text-3xl font-bold tracking-tighter">ScriptureStream</div>
+          <Link to="/" className="flex items-center gap-4 text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
+            <img src="logo.png" alt="" className="w-10 h-10 object-contain" />
+            ScriptureStream
+          </Link>
           <div className="flex flex-wrap justify-center gap-6 md:gap-10 font-sans text-xs md:text-sm text-[#6d5b4b] uppercase font-bold tracking-widest">
-            <a href="#" className="hover:text-black">Home</a>
+            <Link to="/" className="hover:text-black">Home</Link>
             <a href="#" className="hover:text-black">Study Guides</a>
             <a href="#" className="hover:text-black">Community</a>
             <a href="#" className="hover:text-black">About</a>

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { BIBLE_BOOKS, TRANSLATIONS } from '../constants';
 
 interface SidebarProps {
@@ -32,9 +32,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, theme, onClose }) => {
       border-r ${theme.border} overflow-y-auto no-scrollbar bg-inherit shadow-2xl lg:shadow-none
     `}>
       <div className="sticky top-0 bg-inherit z-10 border-b border-inherit">
-        <div className="flex items-center justify-between p-4 lg:hidden">
-          <span className="font-bold text-lg">Menu</span>
-          <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full">
+        <div className="flex items-center justify-between p-4">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <img src="logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <span className="font-bold text-lg tracking-tight">ScriptureStream</span>
+          </Link>
+          <button onClick={onClose} className="p-2 lg:hidden hover:bg-black/5 rounded-full" aria-label="Close Sidebar">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>

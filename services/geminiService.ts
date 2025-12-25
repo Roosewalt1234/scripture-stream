@@ -1,8 +1,7 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 import { Verse } from "../types";
 
-// Always use process.env.API_KEY directly as a named parameter
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const geminiService = {
@@ -71,6 +70,27 @@ export const geminiService = {
       return null;
     } catch (error) {
       console.error("Image Generation Error:", error);
+      return null;
+    }
+  },
+
+  generateSpeech: async (text: string, voiceName: string = 'Kore'): Promise<string | null> => {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: `Read clearly: ${text}` }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName },
+            },
+          },
+        },
+      });
+      return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+    } catch (error) {
+      console.error("TTS Error:", error);
       return null;
     }
   }

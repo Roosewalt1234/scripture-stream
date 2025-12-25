@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { bibleService } from '../services/bibleService';
 import { geminiService } from '../services/geminiService';
 import { storageService } from '../services/storageService';
+import { decodeBase64, decodeAudioData } from '../utils/audioUtils';
 import { Verse, Translation, UserPreferences, Note, Highlight } from '../types';
 
 interface ReaderViewProps {
@@ -14,7 +15,7 @@ interface ReaderViewProps {
 const HIGHLIGHT_COLORS = [
   { name: 'Yellow', class: 'bg-yellow-200/60 dark:bg-yellow-600/40', btn: 'bg-yellow-400', key: 'yellow' },
   { name: 'Blue', class: 'bg-blue-200/60 dark:bg-blue-600/40', btn: 'bg-blue-400', key: 'blue' },
-  { name: 'Green', class: 'bg-green-200/60 dark:bg-green-600/40', btn: 'bg-green-400', key: 'green' },
+  { name: 'Green', class: 'bg-green-200/60 dark:bg-green-600/40', btn: 'bg-blue-400', key: 'green' },
   { name: 'Pink', class: 'bg-pink-200/60 dark:bg-pink-600/40', btn: 'bg-pink-400', key: 'pink' },
   { name: 'Orange', class: 'bg-orange-200/60 dark:bg-orange-600/40', btn: 'bg-orange-400', key: 'orange' },
 ];
@@ -26,6 +27,8 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const studyPanelRef = useRef<HTMLDivElement>(null);
+  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   
   const [verses, setVerses] = useState<Verse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +42,10 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [isRead, setIsRead] = useState(false);
   
+  // Audio States
+  const [isTtsLoading, setIsTtsLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+
   // Share States
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [isGeneratingArt, setIsGeneratingArt] = useState(false);
@@ -48,6 +55,7 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
   useEffect(() => {
     const loadChapter = async () => {
       if (!book || !chapter || !translation) return;
+      stopAudio(); // Stop any audio from previous chapter
       setLoading(true);
       setError(null);
       try {
@@ -77,6 +85,56 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
     setHistoricalContext(null);
     setVerseArtUrl(null);
   }, [book, chapter, translation]);
+
+  const stopAudio = () => {
+    if (audioSourceRef.current) {
+      audioSourceRef.current.stop();
+      audioSourceRef.current = null;
+    }
+    setIsPlaying(false);
+  };
+
+  const handleListenChapter = async () => {
+    if (isPlaying) {
+      stopAudio();
+      return;
+    }
+
+    if (verses.length === 0) return;
+
+    setIsTtsLoading(true);
+    try {
+      const fullText = verses.map(v => `${v.number}. ${v.text}`).join(' ');
+      const base64Audio = await geminiService.generateSpeech(fullText);
+
+      if (!base64Audio) throw new Error("Failed to generate audio.");
+
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      }
+
+      const audioBuffer = await decodeAudioData(
+        decodeBase64(base64Audio),
+        audioContextRef.current,
+        24000,
+        1
+      );
+
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContextRef.current.destination);
+      source.onended = () => setIsPlaying(false);
+      
+      audioSourceRef.current = source;
+      source.start();
+      setIsPlaying(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to play chapter voice.");
+    } finally {
+      setIsTtsLoading(false);
+    }
+  };
 
   const handleVerseClick = (v: Verse) => {
     setSelectedVerse(v);
@@ -141,75 +199,100 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
     if (!selectedVerse || !book || !chapter) return;
     setIsGeneratingArt(true);
     setVerseArtUrl(null);
+
+    const loadImage = (src: string): Promise<HTMLImageElement> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = src;
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+      });
+    };
+
     try {
       const bgDataUrl = await geminiService.generateVerseArtBackground(selectedVerse.text, selectedStyle);
       if (!bgDataUrl) throw new Error("Could not generate background");
+
+      const [bgImg, logoImg] = await Promise.all([
+        loadImage(bgDataUrl),
+        loadImage('logo.png').catch(() => null) // Optional logo
+      ]);
 
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = bgDataUrl;
+      const size = 1080;
+      canvas.width = size;
+      canvas.height = size;
+
+      // Draw Background
+      ctx.drawImage(bgImg, 0, 0, size, size);
+
+      // Vignette Overlay
+      const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size * 0.8);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.65)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Main Text Styling
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 20;
       
-      img.onload = () => {
-        const size = 1080;
-        canvas.width = size;
-        canvas.height = size;
-
-        ctx.drawImage(img, 0, 0, size, size);
-
-        const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size * 0.8);
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size, size);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0,0,0,0.3)';
-        ctx.shadowBlur = 15;
-        
-        const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
-          const words = text.split(' ');
-          let line = '';
-          const lines = [];
-          for (let n = 0; n < words.length; n++) {
-            const testLine = line + words[n] + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && n > 0) {
-              lines.push(line);
-              line = words[n] + ' ';
-            } else {
-              line = testLine;
-            }
+      const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
+        const words = text.split(' ');
+        let line = '';
+        const lines = [];
+        for (let n = 0; n < words.length; n++) {
+          const testLine = line + words[n] + ' ';
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > maxWidth && n > 0) {
+            lines.push(line);
+            line = words[n] + ' ';
+          } else {
+            line = testLine;
           }
-          lines.push(line);
-          const totalHeight = lines.length * lineHeight;
-          let startY = y - (totalHeight / 2);
-          lines.forEach((l, i) => { ctx.fillText(l, x, startY + (i * lineHeight)); });
-          return totalHeight;
-        };
-
-        ctx.font = 'italic 58px "Crimson Pro", serif';
-        const textHeight = wrapText(selectedVerse.text, size / 2, size / 2 - 20, 850, 75);
-        ctx.shadowBlur = 5;
-        ctx.font = 'bold 32px "Inter", sans-serif';
-        ctx.globalAlpha = 0.9;
-        ctx.fillText(`${book} ${chapter}:${selectedVerse.number}`, size / 2, (size / 2) + (textHeight / 2) + 60);
-        ctx.font = '400 20px "Inter", sans-serif';
-        ctx.globalAlpha = 0.6;
-        ctx.fillText(translation || 'NIV', size / 2, (size / 2) + (textHeight / 2) + 100);
-        ctx.globalAlpha = 0.4;
-        ctx.font = '300 18px "Inter", sans-serif';
-        ctx.fillText('ScriptureStream • Sacred Study', size / 2, size - 60);
-
-        setVerseArtUrl(canvas.toDataURL('image/png'));
-        setIsGeneratingArt(false);
+        }
+        lines.push(line);
+        const totalHeight = lines.length * lineHeight;
+        let startY = y - (totalHeight / 2);
+        lines.forEach((l, i) => { ctx.fillText(l, x, startY + (i * lineHeight)); });
+        return totalHeight;
       };
+
+      ctx.font = 'italic 58px "Crimson Pro", serif';
+      const textHeight = wrapText(selectedVerse.text, size / 2, size / 2 - 40, 850, 75);
+      
+      // Reference Styling
+      ctx.shadowBlur = 8;
+      ctx.font = 'bold 36px "Inter", sans-serif';
+      ctx.globalAlpha = 0.95;
+      ctx.fillText(`${book} ${chapter}:${selectedVerse.number}`, size / 2, (size / 2) + (textHeight / 2) + 60);
+      
+      ctx.font = '400 22px "Inter", sans-serif';
+      ctx.globalAlpha = 0.7;
+      ctx.fillText(translation || 'NIV', size / 2, (size / 2) + (textHeight / 2) + 110);
+
+      // Logo and Tagline at Bottom
+      if (logoImg) {
+        const logoSize = 100;
+        ctx.globalAlpha = 0.8;
+        ctx.shadowBlur = 0;
+        ctx.drawImage(logoImg, (size / 2) - (logoSize / 2), size - 200, logoSize, logoSize);
+      }
+
+      ctx.globalAlpha = 0.5;
+      ctx.font = '300 20px "Inter", sans-serif';
+      ctx.fillText('ScriptureStream • Sacred Study', size / 2, size - 70);
+
+      setVerseArtUrl(canvas.toDataURL('image/png'));
+      setIsGeneratingArt(false);
     } catch (err) {
       console.error(err);
       alert("Failed to create Verse Art.");
@@ -304,20 +387,41 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
       {/* Main Reader Body */}
       <div className="flex-1 p-4 md:p-12 lg:p-20 overflow-y-auto no-scrollbar">
         <div className="max-w-2xl mx-auto space-y-12">
-          <header className="text-center space-y-4 pt-4">
-            <div className="flex flex-col items-center gap-2">
+          <header className="text-center space-y-6 pt-4">
+            <div className="flex flex-col items-center gap-4">
               <h2 className="text-3xl md:text-5xl font-bold font-serif leading-tight">{book} {chapter}</h2>
-              <div className="flex items-center gap-3">
-                <p className="text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase opacity-40">{translation}</p>
-                <button 
-                  onClick={toggleRead}
-                  className={`transition-all duration-300 w-10 h-10 rounded-full border-2 flex items-center justify-center active:scale-90
-                    ${isRead ? 'bg-green-500 border-green-500 text-white' : 'border-gray-200 text-gray-200 hover:text-gray-400 hover:border-gray-400 dark:border-zinc-800'}`}
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </button>
+              
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center">
+                   <p className="text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase opacity-40 mb-2">{translation}</p>
+                   <div className="flex items-center gap-3">
+                      <button 
+                        onClick={toggleRead}
+                        className={`transition-all duration-300 w-12 h-12 rounded-full border-2 flex items-center justify-center active:scale-90
+                          ${isRead ? 'bg-green-500 border-green-500 text-white' : 'border-gray-200 text-gray-200 hover:text-gray-400 hover:border-gray-400 dark:border-zinc-800'}`}
+                      >
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      
+                      <button 
+                        onClick={handleListenChapter}
+                        disabled={isTtsLoading}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 border-2
+                          ${isPlaying ? 'bg-red-500 border-red-500 text-white animate-pulse' : 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/20'}
+                          ${isTtsLoading ? 'opacity-50' : ''}`}
+                      >
+                        {isTtsLoading ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : isPlaying ? (
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        ) : (
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        )}
+                      </button>
+                   </div>
+                </div>
               </div>
             </div>
           </header>

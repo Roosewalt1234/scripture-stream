@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { UserPreferences } from '../types';
 import { THEME_COLORS } from '../constants';
 
@@ -19,12 +20,16 @@ const Header: React.FC<HeaderProps> = ({ preferences, setPreferences, toggleSide
         <button 
           onClick={toggleSidebar}
           className="p-2 hover:bg-black/5 rounded-md"
+          aria-label="Toggle Menu"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
           </svg>
         </button>
-        <h1 className="text-xl font-bold tracking-tight hidden sm:block">ScriptureStream</h1>
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <img src="logo.png" alt="ScriptureStream Logo" className="w-8 h-8 object-contain" />
+          <h1 className="text-xl font-bold tracking-tight hidden sm:block">ScriptureStream</h1>
+        </Link>
       </div>
 
       <div className="flex items-center gap-2">
