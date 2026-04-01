@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { UserPreferences } from './types';
-import { THEME_COLORS } from './constants';
+import { DEFAULT_TRANSLATION, THEME_COLORS } from './constants';
 import ReaderView from './components/ReaderView';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -71,7 +71,7 @@ const MainLayout: React.FC<{
               />
             } />
             {/* Fallback for malformed bible URLs */}
-            <Route path="/bible/*" element={<Navigate to="/bible/NIV/John/3" replace />} />
+            <Route path="/bible/*" element={<Navigate to={`/bible/${DEFAULT_TRANSLATION}/John/3`} replace />} />
           </Routes>
         </main>
       </div>

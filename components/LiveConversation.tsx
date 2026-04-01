@@ -1,7 +1,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import { LiveServerMessage, Modality } from '@google/genai';
 import { decodeBase64, decodeAudioData, encodeBase64 } from '../utils/audioUtils';
+import { getGenAIClient } from '../services/genaiClient';
 
 interface LiveConversationProps {
   isActive: boolean;
@@ -48,9 +49,9 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isActive, onClose, 
 
   const startSession = async () => {
     setStatus('connecting');
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
     try {
+      const ai = getGenAIClient();
       audioContextInputRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       audioContextOutputRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -146,7 +147,8 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isActive, onClose, 
           <h4 className="font-bold text-sm">Scripture Voice</h4>
           <p className="text-xs opacity-60">
             {status === 'active' ? (isAiTalking ? 'Scholar is speaking...' : 'Listening to you...') : 
-             status === 'connecting' ? 'Waking up the scholar...' : 'Session ended'}
+             status === 'connecting' ? 'Waking up the scholar...' :
+             status === 'error' ? 'Could not start session' : 'Session ended'}
           </p>
         </div>
 

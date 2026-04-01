@@ -1,11 +1,5 @@
 
-export enum Translation {
-  NIV = 'NIV',
-  KJV = 'KJV',
-  ESV = 'ESV',
-  NLT = 'NLT',
-  NKJV = 'NKJV'
-}
+export type Translation = string;
 
 export interface Verse {
   id: string;

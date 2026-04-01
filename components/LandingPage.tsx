@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { DEFAULT_TRANSLATION } from '../constants';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ const LandingPage: React.FC = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6 px-4">
             <button 
-              onClick={() => navigate('/bible/NIV/John/3')}
+              onClick={() => navigate(`/bible/${DEFAULT_TRANSLATION}/John/3`)}
               className="w-full sm:w-auto px-8 py-3.5 bg-[#2c2420] text-white rounded-full text-lg font-medium hover:bg-black transition-all shadow-2xl shadow-black/20 active:scale-95 font-sans"
             >
               Begin Your Journey
@@ -79,7 +80,7 @@ const LandingPage: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
               <div className="absolute bottom-6 left-6 text-white">
                 <h4 className="text-2xl font-medium">Sacred Text</h4>
-                <p className="text-sm opacity-80 font-sans mt-1">NIV, KJV, ESV & more.</p>
+                <p className="text-sm opacity-80 font-sans mt-1">Free versions in multiple languages.</p>
               </div>
             </div>
             <p className="text-[#6d5b4b] leading-relaxed font-sans text-sm md:text-base">
@@ -145,7 +146,7 @@ const LandingPage: React.FC = () => {
             MATTHEW 6:33
           </div>
           <button 
-            onClick={() => navigate('/bible/NIV/Matthew/6')}
+            onClick={() => navigate(`/bible/${DEFAULT_TRANSLATION}/Matthew/6`)}
             className="mt-6 px-10 py-4 border border-white/20 rounded-full hover:bg-white hover:text-[#2c2420] transition-all active:scale-95 font-sans text-xs font-bold tracking-widest uppercase"
           >
             Read Chapter

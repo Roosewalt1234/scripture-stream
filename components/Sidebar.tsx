@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { BIBLE_BOOKS, TRANSLATIONS } from '../constants';
+import { useNavigate, useMatch, Link } from 'react-router-dom';
+import { BIBLE_BOOKS, DEFAULT_TRANSLATION, TRANSLATIONS } from '../constants';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,17 +11,37 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, theme, onClose }) => {
   const navigate = useNavigate();
-  const { book: currentBook, chapter: currentChapter, translation: currentTranslation } = useParams();
+  const bibleMatch = useMatch('/bible/:translation/:book/:chapter');
+  const currentTranslation = bibleMatch?.params?.translation;
+  const currentBook = bibleMatch?.params?.book;
+  const currentChapter = bibleMatch?.params?.chapter;
   const [activeTab, setActiveTab] = useState<'books' | 'translations'>('books');
   const [activeTestament, setActiveTestament] = useState<'Old Testament' | 'New Testament'>('New Testament');
 
+  const NT_ONLY_TRANSLATIONS = new Set(['cherokee', 'ylt']);
+  const effectiveTranslation =
+    typeof currentTranslation === 'string' && TRANSLATIONS.some((t) => t.id === currentTranslation)
+      ? currentTranslation
+      : DEFAULT_TRANSLATION;
+
   const handleChapterSelect = (book: string, chapter: number) => {
-    navigate(`/bible/${currentTranslation || 'NIV'}/${book}/${chapter}`);
+    navigate(`/bible/${effectiveTranslation}/${book}/${chapter}`);
     if (window.innerWidth < 1024) onClose();
   };
 
   const handleTranslationSelect = (trans: string) => {
-    navigate(`/bible/${trans}/${currentBook || 'John'}/${currentChapter || 3}`);
+    let nextBook = currentBook || 'John';
+    let nextChapter = currentChapter || '3';
+
+    if (NT_ONLY_TRANSLATIONS.has(trans)) {
+      const bookMeta = BIBLE_BOOKS.find((b) => b.name === nextBook);
+      if (bookMeta?.category === 'Old Testament') {
+        nextBook = 'John';
+        nextChapter = '3';
+      }
+    }
+
+    navigate(`/bible/${trans}/${nextBook}/${nextChapter}`);
     if (window.innerWidth < 1024) onClose();
   };
 
@@ -82,10 +102,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, theme, onClose }) => {
               <button
                 key={t.id}
                 onClick={() => handleTranslationSelect(t.id)}
-                className={`w-full text-left px-4 py-4 rounded-xl transition-all active:scale-[0.98] ${currentTranslation === t.id ? 'bg-blue-500/10 text-blue-500' : 'hover:bg-black/5'}`}
+                className={`w-full text-left px-4 py-4 rounded-xl transition-all active:scale-[0.98] ${effectiveTranslation === t.id ? 'bg-blue-500/10 text-blue-500' : 'hover:bg-black/5'}`}
               >
-                <div className="font-bold">{t.id}</div>
-                <div className="text-xs opacity-60">{t.name}</div>
+                <div className="font-bold">{t.name}</div>
+                <div className="text-xs opacity-60">{t.id} • {t.language}</div>
               </button>
             ))}
           </div>

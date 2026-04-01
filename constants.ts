@@ -1,5 +1,6 @@
+import { BibleBook } from './types';
 
-import { BibleBook, Translation } from './types';
+export const DEFAULT_TRANSLATION = 'web';
 
 export const BIBLE_BOOKS: BibleBook[] = [
   // Old Testament
@@ -73,12 +74,93 @@ export const BIBLE_BOOKS: BibleBook[] = [
 ];
 
 export const TRANSLATIONS = [
-  { id: Translation.NIV, name: 'New International Version' },
-  { id: Translation.KJV, name: 'King James Version' },
-  { id: Translation.ESV, name: 'English Standard Version' },
-  { id: Translation.NLT, name: 'New Living Translation' },
-  { id: Translation.NKJV, name: 'New King James Version' },
-];
+  { id: 'web', name: 'World English Bible', language: 'English', ttsLang: 'en-US' },
+  { id: 'kjv', name: 'King James Version', language: 'English', ttsLang: 'en-US' },
+  { id: 'asv', name: 'American Standard Version (1901)', language: 'English', ttsLang: 'en-US' },
+  { id: 'bbe', name: 'Bible in Basic English', language: 'English', ttsLang: 'en-US' },
+  { id: 'darby', name: 'Darby Bible', language: 'English', ttsLang: 'en-US' },
+  { id: 'dra', name: 'Douay-Rheims 1899 American Edition', language: 'English', ttsLang: 'en-US' },
+  { id: 'oeb-us', name: 'Open English Bible, US Edition', language: 'English (US)', ttsLang: 'en-US' },
+  { id: 'oeb-cw', name: 'Open English Bible, Commonwealth Edition', language: 'English (UK)', ttsLang: 'en-GB' },
+  { id: 'webbe', name: 'World English Bible, British Edition', language: 'English (UK)', ttsLang: 'en-GB' },
+  { id: 'ylt', name: "Young's Literal Translation (NT only)", language: 'English', ttsLang: 'en-US' },
+  { id: 'clementine', name: 'Clementine Latin Vulgate', language: 'Latin', ttsLang: 'la' },
+  { id: 'almeida', name: 'João Ferreira de Almeida', language: 'Portuguese', ttsLang: 'pt-PT' },
+  { id: 'rccv', name: 'Protestant Romanian Corrected Cornilescu Version', language: 'Romanian', ttsLang: 'ro-RO' },
+  { id: 'cuv', name: 'Chinese Union Version', language: 'Chinese', ttsLang: 'zh-TW' },
+  { id: 'bkr', name: 'Bible kralická', language: 'Czech', ttsLang: 'cs-CZ' },
+  { id: 'cherokee', name: 'Cherokee New Testament', language: 'Cherokee', ttsLang: 'chr' },
+  { id: 'synodal', name: 'Russian Synodal Translation', language: 'Russian', ttsLang: 'ru-RU' },
+] as const;
+
+export const BIBLE_BOOK_ID_BY_NAME: Record<string, string> = {
+  Genesis: 'GEN',
+  Exodus: 'EXO',
+  Leviticus: 'LEV',
+  Numbers: 'NUM',
+  Deuteronomy: 'DEU',
+  Joshua: 'JOS',
+  Judges: 'JDG',
+  Ruth: 'RUT',
+  '1 Samuel': '1SA',
+  '2 Samuel': '2SA',
+  '1 Kings': '1KI',
+  '2 Kings': '2KI',
+  '1 Chronicles': '1CH',
+  '2 Chronicles': '2CH',
+  Ezra: 'EZR',
+  Nehemiah: 'NEH',
+  Esther: 'EST',
+  Job: 'JOB',
+  Psalms: 'PSA',
+  Proverbs: 'PRO',
+  Ecclesiastes: 'ECC',
+  'Song of Solomon': 'SNG',
+  Isaiah: 'ISA',
+  Jeremiah: 'JER',
+  Lamentations: 'LAM',
+  Ezekiel: 'EZK',
+  Daniel: 'DAN',
+  Hosea: 'HOS',
+  Joel: 'JOL',
+  Amos: 'AMO',
+  Obadiah: 'OBA',
+  Jonah: 'JON',
+  Micah: 'MIC',
+  Nahum: 'NAM',
+  Habakkuk: 'HAB',
+  Zephaniah: 'ZEP',
+  Haggai: 'HAG',
+  Zechariah: 'ZEC',
+  Malachi: 'MAL',
+  Matthew: 'MAT',
+  Mark: 'MRK',
+  Luke: 'LUK',
+  John: 'JHN',
+  Acts: 'ACT',
+  Romans: 'ROM',
+  '1 Corinthians': '1CO',
+  '2 Corinthians': '2CO',
+  Galatians: 'GAL',
+  Ephesians: 'EPH',
+  Philippians: 'PHP',
+  Colossians: 'COL',
+  '1 Thessalonians': '1TH',
+  '2 Thessalonians': '2TH',
+  '1 Timothy': '1TI',
+  '2 Timothy': '2TI',
+  Titus: 'TIT',
+  Philemon: 'PHM',
+  Hebrews: 'HEB',
+  James: 'JAS',
+  '1 Peter': '1PE',
+  '2 Peter': '2PE',
+  '1 John': '1JN',
+  '2 John': '2JN',
+  '3 John': '3JN',
+  Jude: 'JUD',
+  Revelation: 'REV',
+};
 
 export const THEME_COLORS = {
   light: {
@@ -86,20 +168,21 @@ export const THEME_COLORS = {
     text: 'text-gray-900',
     secondary: 'text-gray-600',
     border: 'border-gray-100',
-    highlight: 'bg-yellow-100'
+    highlight: 'bg-yellow-100',
   },
   dark: {
     bg: 'bg-zinc-950',
     text: 'text-zinc-100',
     secondary: 'text-zinc-400',
     border: 'border-zinc-800',
-    highlight: 'bg-yellow-900/30'
+    highlight: 'bg-yellow-900/30',
   },
   sepia: {
     bg: 'bg-[#f4ecd8]',
     text: 'text-[#433422]',
     secondary: 'text-[#6d5b4b]',
     border: 'border-[#e0d6c3]',
-    highlight: 'bg-[#d8c5a2]'
-  }
+    highlight: 'bg-[#d8c5a2]',
+  },
 };
+

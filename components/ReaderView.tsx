@@ -6,6 +6,7 @@ import { geminiService } from '../services/geminiService';
 import { storageService } from '../services/storageService';
 import { decodeBase64, decodeAudioData } from '../utils/audioUtils';
 import { Verse, Translation, UserPreferences, Note, Highlight } from '../types';
+import { DEFAULT_TRANSLATION, TRANSLATIONS } from '../constants';
 
 interface ReaderViewProps {
   preferences: UserPreferences;
@@ -22,6 +23,55 @@ const HIGHLIGHT_COLORS = [
 
 const ART_STYLES = ["Ethereal", "Ancient", "Nature", "Modern"];
 
+const normalizeSpeechText = (text: string): string => text.replace(/\s+/g, ' ').trim();
+
+const splitTextForSpeech = (text: string, maxChars: number): string[] => {
+  const normalized = normalizeSpeechText(text);
+  if (!normalized) return [];
+
+  const sentenceMatches = normalized.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [normalized];
+  const chunks: string[] = [];
+  let current = '';
+
+  const pushCurrent = () => {
+    const trimmed = current.trim();
+    if (trimmed) chunks.push(trimmed);
+    current = '';
+  };
+
+  for (const sentence of sentenceMatches) {
+    const next = sentence.trim();
+    if (!next) continue;
+
+    if ((current + ' ' + next).trim().length <= maxChars) {
+      current = (current ? current + ' ' : '') + next;
+      continue;
+    }
+
+    pushCurrent();
+
+    if (next.length <= maxChars) {
+      current = next;
+      continue;
+    }
+
+    const words = next.split(' ');
+    for (const word of words) {
+      const candidate = (current ? current + ' ' : '') + word;
+      if (candidate.length > maxChars) {
+        pushCurrent();
+        current = word;
+        continue;
+      }
+      current = candidate;
+    }
+    pushCurrent();
+  }
+
+  pushCurrent();
+  return chunks;
+};
+
 const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) => {
   const { translation, book, chapter } = useParams();
   const navigate = useNavigate();
@@ -29,6 +79,8 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
   const studyPanelRef = useRef<HTMLDivElement>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const systemTtsActiveRef = useRef(false);
+  const systemTtsCancelRef = useRef<(() => void) | null>(null);
   
   const [verses, setVerses] = useState<Verse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +107,15 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
   useEffect(() => {
     const loadChapter = async () => {
       if (!book || !chapter || !translation) return;
+
+      const effectiveTranslation = TRANSLATIONS.some((t) => t.id === translation)
+        ? translation
+        : DEFAULT_TRANSLATION;
+      if (effectiveTranslation !== translation) {
+        navigate(`/bible/${effectiveTranslation}/${book}/${chapter}`, { replace: true });
+        return;
+      }
+
       stopAudio(); // Stop any audio from previous chapter
       setLoading(true);
       setError(null);
@@ -91,7 +152,69 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
       audioSourceRef.current.stop();
       audioSourceRef.current = null;
     }
+    systemTtsCancelRef.current?.();
+    systemTtsCancelRef.current = null;
+    systemTtsActiveRef.current = false;
     setIsPlaying(false);
+  };
+
+  useEffect(() => () => stopAudio(), []);
+
+  const speakChapterWithSystemTts = (text: string) => {
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+      return false;
+    }
+
+    const translationMeta = TRANSLATIONS.find((t) => t.id === translation);
+    const lang = translationMeta?.ttsLang || 'en-US';
+
+    const chunks = splitTextForSpeech(text, 220);
+    if (chunks.length === 0) return false;
+
+    const synth = window.speechSynthesis;
+    let cancelled = false;
+
+    const cancel = () => {
+      cancelled = true;
+      synth.cancel();
+    };
+
+    systemTtsCancelRef.current = cancel;
+    systemTtsActiveRef.current = true;
+
+    synth.cancel();
+    setIsPlaying(true);
+
+    const speakNext = (index: number) => {
+      if (cancelled) return;
+      if (index >= chunks.length) {
+        systemTtsActiveRef.current = false;
+        systemTtsCancelRef.current = null;
+        setIsPlaying(false);
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(chunks[index]);
+      utterance.lang = lang;
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      utterance.onend = () => speakNext(index + 1);
+      utterance.onerror = (e) => {
+        console.error(e);
+        if (!cancelled) {
+          alert("Failed to play chapter voice.");
+        }
+        systemTtsActiveRef.current = false;
+        systemTtsCancelRef.current = null;
+        setIsPlaying(false);
+      };
+
+      synth.speak(utterance);
+    };
+
+    speakNext(0);
+    return true;
   };
 
   const handleListenChapter = async () => {
@@ -102,12 +225,17 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
 
     if (verses.length === 0) return;
 
+    const intro = [book, chapter ? `chapter ${chapter}` : null].filter(Boolean).join(' ');
+    const fullText = [intro ? `${intro}.` : null, ...verses.map(v => v.text)].filter(Boolean).join(' ');
     setIsTtsLoading(true);
     try {
-      const fullText = verses.map(v => `${v.number}. ${v.text}`).join(' ');
       const base64Audio = await geminiService.generateSpeech(fullText);
 
-      if (!base64Audio) throw new Error("Failed to generate audio.");
+      if (!base64Audio) {
+        const started = speakChapterWithSystemTts(fullText);
+        if (!started) throw new Error("No TTS engine available.");
+        return;
+      }
 
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -123,13 +251,19 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(audioContextRef.current.destination);
-      source.onended = () => setIsPlaying(false);
+      source.onended = () => {
+        audioSourceRef.current = null;
+        setIsPlaying(false);
+      };
       
       audioSourceRef.current = source;
       source.start();
       setIsPlaying(true);
     } catch (err) {
       console.error(err);
+      if (!systemTtsActiveRef.current && speakChapterWithSystemTts(fullText)) {
+        return;
+      }
       alert("Failed to play chapter voice.");
     } finally {
       setIsTtsLoading(false);
@@ -277,7 +411,7 @@ const ReaderView: React.FC<ReaderViewProps> = ({ preferences, onViewChange }) =>
       
       ctx.font = '400 22px "Inter", sans-serif';
       ctx.globalAlpha = 0.7;
-      ctx.fillText(translation || 'NIV', size / 2, (size / 2) + (textHeight / 2) + 110);
+      ctx.fillText(translation || DEFAULT_TRANSLATION, size / 2, (size / 2) + (textHeight / 2) + 110);
 
       // Logo and Tagline at Bottom
       if (logoImg) {

@@ -1,60 +1,76 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { BIBLE_BOOK_ID_BY_NAME, DEFAULT_TRANSLATION } from '../constants';
 import { Translation, Verse } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+type BibleApiVerse = {
+  book_id: string;
+  book: string;
+  chapter: number;
+  verse: number;
+  text: string;
+};
+
+type BibleApiChapterResponse = {
+  verses: BibleApiVerse[];
+};
+
+const BIBLE_API_BASE = 'https://bible-api.com/data';
+const chapterCache = new Map<string, Verse[]>();
+
+const asNonEmptyString = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+};
 
 /**
- * BibleService handles the dynamic retrieval of authoritative Bible text.
- * It uses the Gemini API as a high-fidelity scripture server to ensure
- * access to every chapter and verse across all supported translations.
+ * BibleService retrieves Bible text from bible-api.com (public domain / freely-licensed translations).
+ * This keeps scripture reading available without requiring an LLM API key in the browser.
  */
 export const bibleService = {
   getChapter: async (book: string, chapter: number, translation: Translation): Promise<Verse[]> => {
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Provide the full and accurate text for ${book} chapter ${chapter} in the ${translation} translation. Return every verse as a structured list.`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                number: {
-                  type: Type.INTEGER,
-                  description: "The verse number",
-                },
-                text: {
-                  type: Type.STRING,
-                  description: "The verbatim text of the verse",
-                },
-              },
-              required: ["number", "text"],
-            },
-          },
-          systemInstruction: `You are a precision-oriented Bible Scripture Server. 
-          Your only task is to provide verbatim text from the requested Bible translation. 
-          Do not add commentary, headers, or footnotes. 
-          Ensure that the verse numbers are correct and the text is exactly as it appears in the ${translation} version.`,
-        },
-      });
+    const translationId = asNonEmptyString(translation) ?? DEFAULT_TRANSLATION;
+    const bookId = BIBLE_BOOK_ID_BY_NAME[book];
+    if (!bookId) {
+      throw new Error(`Unknown book: ${book}`);
+    }
 
-      const rawData = JSON.parse(response.text || "[]");
-      
-      return rawData.map((v: { number: number; text: string }, index: number) => ({
-        id: `${translation}-${book}-${chapter}-${v.number || index + 1}`,
-        number: v.number || index + 1,
-        text: v.text,
+    const cacheKey = `${translationId}:${bookId}:${chapter}`;
+    const cached = chapterCache.get(cacheKey);
+    if (cached) return cached;
+
+    const url = `${BIBLE_API_BASE}/${encodeURIComponent(translationId)}/${encodeURIComponent(bookId)}/${chapter}`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error(`Not found for ${translationId}: ${book} ${chapter}.`);
+        }
+        if (res.status === 429) {
+          throw new Error('Rate limited by the scripture source. Please try again in a moment.');
+        }
+        throw new Error(`Scripture source error (${res.status}).`);
+      }
+
+      const data = (await res.json()) as BibleApiChapterResponse;
+      const verses: Verse[] = (data.verses || []).map((v) => ({
+        id: `${translationId}-${book}-${chapter}-${v.verse}`,
+        number: v.verse,
+        text: (v.text || '').trim(),
         book,
         chapter,
-        translation
+        translation: translationId,
       }));
+
+      chapterCache.set(cacheKey, verses);
+      return verses;
     } catch (error) {
-      console.error("Error fetching scripture:", error);
-      // Fallback in case of API failure, though in production we would have a secondary source
+      console.error('Error fetching scripture:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
       throw new Error(`Failed to load ${book} ${chapter}. Please check your connection.`);
     }
-  }
+  },
 };
