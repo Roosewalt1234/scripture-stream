@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp vite.config.ts vite.config.ts.bak)",
+      "Bash(cp tailwind.config.cjs tailwind.config.cjs.bak)",
+      "Bash(cp tsconfig.json tsconfig.json.bak)",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)",
+      "Bash(rm:*)",
+      "Bash(npm run:*)",
+      "Bash(ls vite*)"
+    ]
+  }
+}

@@ -81,7 +81,7 @@ export function LiveConversation({ currentBook, currentChapter, selectedVerse, o
             scriptProcessor.connect(audioContextInputRef.current!.destination);
           },
           onmessage: async (message: LiveServerMessage) => {
-            const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+            const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (base64Audio) {
               setIsAiTalking(true);
               const ctx = audioContextOutputRef.current!;

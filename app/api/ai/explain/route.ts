@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     .from('subscriptions').select('plan, status, current_period_end')
     .eq('user_id', user.id).single();
 
-  const paid = isPremium(sub ? { ...sub, id: '', userId: user.id, stripeCustomerId: null, stripeSubscriptionId: null } : null);
+  const paid = isPremium(sub ? { id: '', userId: user.id, plan: sub.plan, status: sub.status, currentPeriodEnd: sub.current_period_end ?? null, stripeCustomerId: null, stripeSubscriptionId: null } : null);
 
   // 4. Rate limit free users
   if (!paid) {
