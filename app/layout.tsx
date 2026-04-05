@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 
+export const dynamic = 'force-dynamic';
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://scripturestream.app';
 
 export const metadata: Metadata = {
@@ -69,9 +71,12 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Use bracket notation to bypass Next.js build-time substitution of NEXT_PUBLIC_ vars.
+  // This reads from process.env at request time (force-dynamic above ensures this).
+  const env = process.env as Record<string, string | undefined>;
   const publicEnv = {
-    SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    SUPABASE_URL: env['NEXT_PUBLIC_SUPABASE_URL'] ?? '',
+    SUPABASE_ANON_KEY: env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ?? '',
   };
   return (
     <html lang="en">
