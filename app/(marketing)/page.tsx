@@ -2,13 +2,49 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://scripturestream.app';
+
 export const metadata: Metadata = {
   title: 'Scripture Stream — Daily Bible Study',
   description: 'Read, study, and explore the Bible with AI-powered insights. Free Bible reader with premium study tools.',
+  alternates: { canonical: APP_URL },
+  openGraph: {
+    url: APP_URL,
+    title: 'Scripture Stream — Daily Bible Study',
+    description: 'Read, study, and explore the Bible with AI-powered insights. Free Bible reader with premium study tools.',
+  },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Scripture Stream',
+  url: APP_URL,
+  description: 'Read, study, and explore the Bible with AI-powered insights. Free Bible reader with historical context, verse explanations, and voice study.',
+  applicationCategory: 'LifestyleApplication',
+  operatingSystem: 'Web',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+    description: 'Free Bible reader with optional premium upgrade',
+  },
+  featureList: [
+    'Bible reader with 17 translations',
+    'AI verse explanations',
+    'Historical context',
+    'Voice study with AI scholar',
+    'Verse highlights and notes',
+  ],
 };
 
 export default function LandingPage() {
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
     <div className="min-h-screen bg-[#fdfaf6] text-[#2c2420] font-serif overflow-x-hidden">
       {/* Hero Section */}
       <section className="relative min-h-[130vh] flex items-center justify-center text-center px-6 overflow-hidden">
@@ -183,5 +219,6 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+    </>
   );
 }

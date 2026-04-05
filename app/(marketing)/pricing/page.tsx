@@ -1,8 +1,16 @@
 import type { Metadata } from 'next';
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://scripturestream.app';
+
 export const metadata: Metadata = {
   title: 'Pricing — Scripture Stream',
   description: 'Upgrade to Premium for unlimited AI, cloud sync, and powerful study tools.',
+  alternates: { canonical: `${APP_URL}/pricing` },
+  openGraph: {
+    url: `${APP_URL}/pricing`,
+    title: 'Pricing — Scripture Stream',
+    description: 'Upgrade to Premium for unlimited AI, cloud sync, and powerful study tools.',
+  },
 };
 
 export default function PricingPage() {
