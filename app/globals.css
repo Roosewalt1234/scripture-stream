@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-size: 18px;
+  --line-height: 1.7;
+}
+
+html { font-size: var(--font-size); }
+
+body {
+  @apply bg-stone-50 text-stone-800;
+}
+
+/* Sepia theme */
+.theme-sepia {
+  @apply bg-amber-50 text-amber-900;
+}
+
+/* Dark theme */
+.theme-dark {
+  @apply bg-stone-900 text-stone-100;
+}
