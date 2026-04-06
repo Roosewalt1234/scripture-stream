@@ -11,6 +11,7 @@ interface PanelNotesProps {
   onHighlight: (verse: Verse, color: string) => void;
   onSaveNote: (verse: Verse, content: string) => void;
   onDeleteNote: (verseId: string) => void;
+  onEditNote: (verseId: string) => void;
 }
 
 const HIGHLIGHT_COLORS = ['#FEF08A', '#93C5FD', '#86EFAC', '#FDA4AF', '#FCA5A1'] as const;
@@ -23,6 +24,7 @@ export function PanelNotes({
   onHighlight,
   onSaveNote,
   onDeleteNote,
+  onEditNote,
 }: PanelNotesProps) {
   const [noteText, setNoteText] = useState('');
 
@@ -86,6 +88,45 @@ export function PanelNotes({
 
       <div className="border-t border-stone-100" />
 
+      {/* Chapter Notes List */}
+      <section>
+        <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
+          Notes in this chapter
+        </p>
+        {chapterNotes.filter(n => n.content).length === 0 ? (
+          <p className="text-sm text-stone-400 italic">No notes yet for this chapter.</p>
+        ) : (
+          <ul className="space-y-3">
+            {chapterNotes.filter(n => n.content).map(note => (
+              <li key={note.id} className="bg-amber-50 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-amber-700">
+                    {verseLabel(note.verseId)}
+                  </span>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => onEditNote(note.verseId)}
+                      className="text-xs text-amber-600 hover:text-amber-800 transition mr-2"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteNote(note.verseId)}
+                      className="text-xs text-stone-400 hover:text-red-500 transition"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-stone-700 leading-relaxed">{note.content}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <div className="border-t border-stone-100" />
+
       {/* Highlights */}
       <section>
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
@@ -130,37 +171,6 @@ export function PanelNotes({
                 >
                   ✕
                 </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <div className="border-t border-stone-100" />
-
-      {/* Chapter Notes List */}
-      <section>
-        <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
-          Notes in this chapter
-        </p>
-        {chapterNotes.filter(n => n.content).length === 0 ? (
-          <p className="text-sm text-stone-400 italic">No notes yet for this chapter.</p>
-        ) : (
-          <ul className="space-y-3">
-            {chapterNotes.filter(n => n.content).map(note => (
-              <li key={note.id} className="bg-amber-50 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-amber-700">
-                    {verseLabel(note.verseId)}
-                  </span>
-                  <button
-                    onClick={() => handleDeleteNote(note.verseId)}
-                    className="text-xs text-stone-400 hover:text-red-500 transition"
-                  >
-                    Delete
-                  </button>
-                </div>
-                <p className="text-sm text-stone-700 leading-relaxed">{note.content}</p>
               </li>
             ))}
           </ul>
