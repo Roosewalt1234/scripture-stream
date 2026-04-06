@@ -3,6 +3,7 @@ import { Verse, Note, Highlight } from '@/types';
 import { PanelAI } from './panel-ai';
 import { PanelNotes } from './panel-notes';
 import { PanelTools } from './panel-tools';
+import { useTheme } from '@/components/providers/theme-provider';
 
 export type PanelTab = 'ai' | 'notes' | 'tools';
 
@@ -45,10 +46,13 @@ export function RightPanel({
   onDeleteNote,
   onEditNote,
 }: RightPanelProps) {
+  const { prefs } = useTheme();
   return (
     <aside
-      className={`relative flex-shrink-0 border-l border-stone-200 bg-white transition-all duration-200 flex flex-col ${
+      className={`relative flex-shrink-0 border-l border-stone-200 transition-all duration-200 flex flex-col ${
         isOpen ? 'w-80' : 'w-10'
+      } ${
+        prefs.theme === 'dark' ? 'bg-zinc-900' : prefs.theme === 'sepia' ? 'bg-[#f4ecd8]' : 'bg-white'
       }`}
     >
       {/* Toggle chevron */}
@@ -57,7 +61,7 @@ export function RightPanel({
         className="absolute -left-3 top-6 z-10 w-6 h-6 bg-white border border-stone-200 rounded-full flex items-center justify-center shadow-sm hover:bg-stone-50 transition text-stone-500"
         aria-label={isOpen ? 'Collapse panel' : 'Expand panel'}
       >
-        {isOpen ? '›' : '‹'}
+        {isOpen ? '‹' : '›'}
       </button>
 
       {/* Collapsed: vertical icon strip */}
@@ -68,6 +72,7 @@ export function RightPanel({
               key={tab.id}
               onClick={() => { onTabChange(tab.id); onToggle(); }}
               title={tab.label}
+              aria-label={tab.label}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 transition text-sm"
             >
               {tab.icon}
