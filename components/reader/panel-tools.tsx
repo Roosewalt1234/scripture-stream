@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/components/providers/theme-provider';
 import { localStore } from '@/lib/storage/local';
 import { UserPreferences } from '@/types';
@@ -24,6 +24,11 @@ export function PanelTools({ book, chapter }: PanelToolsProps) {
     }
     setTotalRead(localStore.getProgress().length);
   }
+
+  useEffect(() => {
+    setIsRead(localStore.isRead(book, chapter));
+    setTotalRead(localStore.getProgress().length);
+  }, [book, chapter]);
 
   return (
     <div className="space-y-5">
@@ -67,6 +72,7 @@ export function PanelTools({ book, chapter }: PanelToolsProps) {
             value={prefs.fontSize}
             onChange={e => setPrefs({ fontSize: Number(e.target.value) })}
             className="w-full accent-amber-600"
+            aria-label="Font size"
           />
         </div>
 
@@ -117,7 +123,7 @@ export function PanelTools({ book, chapter }: PanelToolsProps) {
       {/* Premium locked items */}
       <section>
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">
-          Study Tools
+          Coming Soon (Premium)
         </p>
         {[
           { label: 'Cross References', description: 'See related passages across the Bible' },
