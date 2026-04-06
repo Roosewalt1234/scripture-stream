@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Verse, Note, Highlight } from '@/types';
 import { localStore } from '@/lib/storage/local';
 
@@ -36,9 +36,10 @@ export function PanelNotes({
   }, [selectedVerse?.id, notes]);
 
   // Notes and highlights scoped to the current chapter's verses
-  const verseIds = new Set(verses.map(v => v.id));
-  const chapterNotes = notes.filter(n => verseIds.has(n.verseId));
-  const chapterHighlights = highlights.filter(h => verseIds.has(h.verseId));
+  const verseIds = useMemo(() => new Set(verses.map(v => v.id)), [verses]);
+  const chapterNotes = useMemo(() => notes.filter(n => verseIds.has(n.verseId)), [notes, verseIds]);
+  const chapterHighlights = useMemo(() => highlights.filter(h => verseIds.has(h.verseId)), [highlights, verseIds]);
+  const visibleNotes = useMemo(() => chapterNotes.filter(n => n.content), [chapterNotes]);
 
   function verseLabel(verseId: string) {
     const v = verses.find(v => v.id === verseId);
@@ -51,7 +52,6 @@ export function PanelNotes({
   }
 
   function handleDeleteNote(verseId: string) {
-    localStore.saveNote({ id: `note-${verseId}`, verseId, content: '', lastUpdated: Date.now() });
     onDeleteNote(verseId);
   }
 
@@ -93,11 +93,11 @@ export function PanelNotes({
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
           Notes in this chapter
         </p>
-        {chapterNotes.filter(n => n.content).length === 0 ? (
+        {visibleNotes.length === 0 ? (
           <p className="text-sm text-stone-400 italic">No notes yet for this chapter.</p>
         ) : (
           <ul className="space-y-3">
-            {chapterNotes.filter(n => n.content).map(note => (
+            {visibleNotes.map(note => (
               <li key={note.id} className="bg-amber-50 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-semibold text-amber-700">
@@ -172,7 +172,6 @@ export function PanelNotes({
                 <span className="text-stone-500 text-xs w-6 flex-shrink-0">{verseLabel(h.verseId)}</span>
                 <button
                   onClick={() => {
-                    localStore.removeHighlight(h.verseId);
                     const v = verses.find(v => v.id === h.verseId);
                     if (v) onHighlight(v, '');
                   }}
