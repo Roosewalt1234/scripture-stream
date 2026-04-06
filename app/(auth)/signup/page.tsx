@@ -25,22 +25,27 @@ export default function SignUpPage() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.BaseSyntheticEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${location.origin}/auth/callback`,
-      },
-    });
-    setLoading(false);
-    if (error) { setError(error.message); return; }
-    setSuccess(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: `${location.origin}/auth/callback`,
+        },
+      });
+      if (error) { setError(error.message); return; }
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (success) {
