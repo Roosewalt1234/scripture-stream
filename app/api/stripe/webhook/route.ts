@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         stripeSubscriptionId: sub.id,
         plan: mapPlanFromPriceId(priceId),
         status: mapStripeStatus(sub.status),
-        currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+        currentPeriodEnd: (sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000) : null,
       });
       break;
     }
@@ -74,7 +74,8 @@ export async function POST(req: NextRequest) {
       const invoice = event.data.object as Stripe.Invoice;
       const userId = await getUserIdByCustomer(invoice.customer as string);
       if (!userId) break;
-      const subId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+      const invSub = (invoice as any).subscription;
+      const subId = typeof invSub === 'string' ? invSub : invSub?.id;
       if (subId) {
         const stripe2 = getStripe();
         const stripeSub = await stripe2.subscriptions.retrieve(subId);
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
           stripeSubscriptionId: subId,
           plan: mapPlanFromPriceId(stripeSub.items.data[0]?.price.id ?? ''),
           status: 'past_due',
-          currentPeriodEnd: stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000) : null,
+          currentPeriodEnd: (stripeSub as any).current_period_end ? new Date((stripeSub as any).current_period_end * 1000) : null,
         });
       }
       break;

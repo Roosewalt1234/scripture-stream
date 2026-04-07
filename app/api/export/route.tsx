@@ -36,26 +36,17 @@ export async function GET(req: NextRequest) {
   });
 
   const doc = (
-    // @ts-expect-error — react-pdf JSX
     <Document>
-      {/* @ts-expect-error */}
       <Page style={styles.page}>
-        {/* @ts-expect-error */}
         <Text style={styles.title}>{book} {chapter}</Text>
-        {/* @ts-expect-error */}
         <Text style={styles.translation}>{translation.toUpperCase()} Translation · Exported from Scripture Stream</Text>
         {verses.map(v => (
-          // @ts-expect-error
           <View key={v.id}>
-            {/* @ts-expect-error */}
             <View style={styles.verseRow}>
-              {/* @ts-expect-error */}
               <Text style={styles.verseNum}>{v.number}</Text>
-              {/* @ts-expect-error */}
               <Text style={styles.verseText}>{v.text}</Text>
             </View>
             {noteMap[v.number] && (
-              // @ts-expect-error
               <Text style={styles.noteText}>✎ {noteMap[v.number]}</Text>
             )}
           </View>
