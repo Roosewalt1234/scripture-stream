@@ -3,9 +3,10 @@ import { Verse, Note, Highlight } from '@/types';
 import { PanelAI } from './panel-ai';
 import { PanelNotes } from './panel-notes';
 import { PanelTools } from './panel-tools';
+import { PanelStudyAssistant } from './panel-study-assistant';
 import { useTheme } from '@/components/providers/theme-provider';
 
-export type PanelTab = 'ai' | 'notes' | 'tools';
+export type PanelTab = 'ai' | 'notes' | 'tools' | 'study';
 
 interface RightPanelProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ interface RightPanelProps {
 
 const TABS: { id: PanelTab; label: string; icon: string }[] = [
   { id: 'ai', label: 'AI', icon: '✦' },
+  { id: 'study', label: 'Chat', icon: '💬' },
   { id: 'notes', label: 'Notes', icon: '✎' },
   { id: 'tools', label: 'Tools', icon: '⚙' },
 ];
@@ -109,6 +111,9 @@ export function RightPanel({
                 book={book}
                 chapter={chapter}
               />
+            )}
+            {activeTab === 'study' && (
+              <PanelStudyAssistant book={book} chapter={chapter} selectedVerse={selectedVerse} />
             )}
             {activeTab === 'notes' && (
               <PanelNotes
