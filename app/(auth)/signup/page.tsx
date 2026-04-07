@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
@@ -17,11 +18,12 @@ function EyeIcon({ open }: { open: boolean }) {
 }
 
 export default function SignUpPage() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(searchParams.get('error') ?? '');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 

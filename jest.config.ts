@@ -9,7 +9,7 @@ const config: Config = {
   setupFiles: ['<rootDir>/jest.env.ts'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
+    '^@/(.*)$': ['<rootDir>/.worktrees/pending-features/$1', '<rootDir>/$1'],
   },
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   testPathIgnorePatterns: ['/node_modules/', '/.worktrees/'],

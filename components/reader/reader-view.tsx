@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Verse, Highlight, Note, Translation } from '@/types';
 import { bibleService } from '@/lib/bible/service';
 import { localStore } from '@/lib/storage/local';
+import { cloudStore } from '@/lib/storage/cloud';
 import { DEFAULT_TRANSLATION } from '@/lib/constants';
 import { ReaderHeader } from './reader-header';
 import { Sidebar } from './sidebar';
@@ -12,9 +13,10 @@ import { RightPanel, PanelTab } from './right-panel';
 interface ReaderViewProps {
   initialBook: string;
   initialChapter: number;
+  isPremium: boolean;
 }
 
-export function ReaderView({ initialBook, initialChapter }: ReaderViewProps) {
+export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderViewProps) {
   const [book, setBook] = useState(initialBook);
   const [chapter, setChapter] = useState(initialChapter);
   const [translation, setTranslation] = useState<Translation>(DEFAULT_TRANSLATION);
@@ -29,79 +31,92 @@ export function ReaderView({ initialBook, initialChapter }: ReaderViewProps) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<PanelTab>('ai');
 
+  // Load notes and highlights for current chapter
   useEffect(() => {
-    setNotes(localStore.getNotes());
-    setHighlights(localStore.getHighlights());
-  }, []);
+    async function loadData() {
+      if (isPremium) {
+        const [n, h] = await Promise.all([
+          cloudStore.getNotes(book, chapter),
+          cloudStore.getHighlights(book, chapter),
+        ]);
+        setNotes(n); setHighlights(h);
+      } else {
+        setNotes(localStore.getNotes());
+        setHighlights(localStore.getHighlights());
+      }
+    }
+    loadData();
+  }, [book, chapter, isPremium]);
 
   useEffect(() => {
-    setLoading(true);
-    setError('');
-    setSelectedVerse(null);
+    setLoading(true); setError(''); setSelectedVerse(null);
     bibleService.getChapter(book, chapter, translation)
       .then(v => { setVerses(v); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, [book, chapter, translation]);
 
-  function handleHighlight(verse: Verse, color: string) {
+  async function handleHighlight(verse: Verse, color: string) {
+    const verseNum = verse.number;
     const existing = highlights.find(h => h.verseId === verse.id);
     if (!color || (existing && existing.color === color)) {
-      localStore.removeHighlight(verse.id);
+      if (isPremium) { await cloudStore.saveHighlight(book, chapter, verseNum, ''); }
+      else { localStore.removeHighlight(verse.id); }
     } else {
-      if (existing) localStore.removeHighlight(verse.id);
-      localStore.saveHighlight({ id: `hl-${verse.id}`, verseId: verse.id, color });
+      if (isPremium) { await cloudStore.saveHighlight(book, chapter, verseNum, color); }
+      else {
+        if (existing) localStore.removeHighlight(verse.id);
+        localStore.saveHighlight({ id: `hl-${verse.id}`, verseId: verse.id, color });
+      }
     }
-    setHighlights(localStore.getHighlights());
+    if (isPremium) {
+      const h = await cloudStore.getHighlights(book, chapter);
+      setHighlights(h);
+    } else {
+      setHighlights(localStore.getHighlights());
+    }
   }
 
-  function handleSaveNote(verse: Verse, content: string) {
+  async function handleSaveNote(verse: Verse, content: string) {
     if (!content.trim()) return;
-    localStore.saveNote({ id: `note-${verse.id}`, verseId: verse.id, content, lastUpdated: Date.now() });
-    setNotes(localStore.getNotes());
+    if (isPremium) {
+      await cloudStore.saveNote(book, chapter, verse.number, content);
+      const n = await cloudStore.getNotes(book, chapter);
+      setNotes(n);
+    } else {
+      localStore.saveNote({ id: `note-${verse.id}`, verseId: verse.id, content, lastUpdated: Date.now() });
+      setNotes(localStore.getNotes());
+    }
   }
 
-  function handleDeleteNote(verseId: string) {
-    localStore.saveNote({ id: `note-${verseId}`, verseId, content: '', lastUpdated: Date.now() });
-    setNotes(localStore.getNotes());
+  async function handleDeleteNote(verseId: string) {
+    if (isPremium) {
+      const verseNum = parseInt(verseId.split('-').pop() ?? '0');
+      await cloudStore.saveNote(book, chapter, verseNum, '');
+      const n = await cloudStore.getNotes(book, chapter);
+      setNotes(n);
+    } else {
+      localStore.saveNote({ id: `note-${verseId}`, verseId, content: '', lastUpdated: Date.now() });
+      setNotes(localStore.getNotes());
+    }
   }
 
   function handleEditNote(verseId: string) {
     const verse = verses.find(v => v.id === verseId);
-    if (verse) {
-      setSelectedVerse(verse);
-      setActiveTab('notes');
-      setPanelOpen(true);
-    }
+    if (verse) { setSelectedVerse(verse); setActiveTab('notes'); setPanelOpen(true); }
   }
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar
-        isOpen={sidebarOpen}
-        currentBook={book}
-        currentChapter={chapter}
-        currentTranslation={translation}
-        onTranslationChange={setTranslation}
-      />
+      <Sidebar isOpen={sidebarOpen} currentBook={book} currentChapter={chapter} currentTranslation={translation} onTranslationChange={setTranslation} />
 
       <div className="flex flex-col flex-1 min-w-0">
-        <ReaderHeader
-          onMenuToggle={() => setSidebarOpen(o => !o)}
-          onLiveStudy={() => setShowLiveConvo(true)}
-        />
+        <ReaderHeader onMenuToggle={() => setSidebarOpen(o => !o)} onLiveStudy={() => setShowLiveConvo(true)} />
         <main className="flex-1 overflow-y-auto p-6 max-w-2xl mx-auto w-full">
-          {/* Chapter navigation */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-serif">{book} {chapter}</h2>
             <div className="flex gap-2">
-              <button
-                onClick={() => setChapter(c => Math.max(1, c - 1))}
-                className="px-3 py-1.5 bg-stone-100 rounded-lg text-sm hover:bg-stone-200 transition"
-              >← Prev</button>
-              <button
-                onClick={() => setChapter(c => c + 1)}
-                className="px-3 py-1.5 bg-stone-100 rounded-lg text-sm hover:bg-stone-200 transition"
-              >Next →</button>
+              <button onClick={() => setChapter(c => Math.max(1, c - 1))} className="px-3 py-1.5 bg-stone-100 rounded-lg text-sm hover:bg-stone-200 transition">← Prev</button>
+              <button onClick={() => setChapter(c => c + 1)} className="px-3 py-1.5 bg-stone-100 rounded-lg text-sm hover:bg-stone-200 transition">Next →</button>
             </div>
           </div>
 
@@ -114,44 +129,28 @@ export function ReaderView({ initialBook, initialChapter }: ReaderViewProps) {
             return (
               <div
                 key={verse.id}
-                className={`group mb-3 p-3 rounded-lg cursor-pointer transition ${
-                  selectedVerse?.id === verse.id
-                    ? 'bg-amber-50 ring-1 ring-amber-300'
-                    : 'hover:bg-stone-50'
-                }`}
+                className={`group mb-3 p-3 rounded-lg cursor-pointer transition ${selectedVerse?.id === verse.id ? 'bg-amber-50 ring-1 ring-amber-300' : 'hover:bg-stone-50'}`}
                 style={hl ? { backgroundColor: hl.color + '55' } : {}}
                 onClick={() => setSelectedVerse(selectedVerse?.id === verse.id ? null : verse)}
               >
                 <span className="text-xs text-stone-400 mr-2 select-none">{verse.number}</span>
                 <span className="text-stone-800">{verse.text}</span>
                 {note?.content && (
-                  <p className="mt-2 text-xs text-amber-700 italic border-l-2 border-amber-300 pl-2">
-                    {note.content}
-                  </p>
+                  <p className="mt-2 text-xs text-amber-700 italic border-l-2 border-amber-300 pl-2">{note.content}</p>
                 )}
-                {/* Verse action shortcuts */}
                 {selectedVerse?.id === verse.id && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      onClick={e => {
+                    <button onClick={e => { e.stopPropagation(); setActiveTab('ai'); setPanelOpen(true); }} className="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition">✦ Explain</button>
+                    <button onClick={e => { e.stopPropagation(); setActiveTab('notes'); setPanelOpen(true); }} className="text-xs px-2 py-1 bg-stone-100 rounded hover:bg-stone-200 transition">✎ Note</button>
+                    {isPremium && (
+                      <button onClick={e => {
                         e.stopPropagation();
-                        setActiveTab('ai');
-                        setPanelOpen(true);
-                      }}
-                      className="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition"
-                    >
-                      ✦ Explain
-                    </button>
-                    <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        setActiveTab('notes');
-                        setPanelOpen(true);
-                      }}
-                      className="text-xs px-2 py-1 bg-stone-100 rounded hover:bg-stone-200 transition"
-                    >
-                      ✎ Note
-                    </button>
+                        fetch('/api/memory', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ book, chapter, verse: verse.number, verseText: verse.text, translation }) })
+                          .then(r => r.json())
+                          .then(d => { if (d.error) alert(d.error); else alert('Added to memory!'); });
+                      }} className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded hover:bg-purple-200 transition">🧠 Memory</button>
+                    )}
                   </div>
                 )}
               </div>
@@ -161,29 +160,17 @@ export function ReaderView({ initialBook, initialChapter }: ReaderViewProps) {
       </div>
 
       <RightPanel
-        isOpen={panelOpen}
-        onToggle={() => setPanelOpen(o => !o)}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        selectedVerse={selectedVerse}
-        verses={verses}
-        book={book}
-        chapter={chapter}
-        highlights={highlights}
-        notes={notes}
-        onHighlight={handleHighlight}
-        onSaveNote={handleSaveNote}
-        onDeleteNote={handleDeleteNote}
-        onEditNote={handleEditNote}
+        isOpen={panelOpen} onToggle={() => setPanelOpen(o => !o)}
+        activeTab={activeTab} onTabChange={setActiveTab}
+        selectedVerse={selectedVerse} verses={verses}
+        book={book} chapter={chapter}
+        highlights={highlights} notes={notes}
+        onHighlight={handleHighlight} onSaveNote={handleSaveNote}
+        onDeleteNote={handleDeleteNote} onEditNote={handleEditNote}
       />
 
       {showLiveConvo && (
-        <LiveConversation
-          currentBook={book}
-          currentChapter={chapter}
-          selectedVerse={selectedVerse ?? undefined}
-          onClose={() => setShowLiveConvo(false)}
-        />
+        <LiveConversation currentBook={book} currentChapter={chapter} selectedVerse={selectedVerse ?? undefined} onClose={() => setShowLiveConvo(false)} />
       )}
     </div>
   );
