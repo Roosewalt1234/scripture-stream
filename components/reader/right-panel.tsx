@@ -4,9 +4,10 @@ import { PanelAI } from './panel-ai';
 import { PanelNotes } from './panel-notes';
 import { PanelTools } from './panel-tools';
 import { PanelStudyAssistant } from './panel-study-assistant';
+import { PanelCrossReferences } from './panel-cross-references';
 import { useTheme } from '@/components/providers/theme-provider';
 
-export type PanelTab = 'ai' | 'notes' | 'tools' | 'study';
+export type PanelTab = 'ai' | 'notes' | 'tools' | 'study' | 'refs';
 
 interface RightPanelProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface RightPanelProps {
   onSaveNote: (verse: Verse, content: string) => void;
   onDeleteNote: (verseId: string) => void;
   onEditNote: (verseId: string) => void;
+  isPremium: boolean;
 }
 
 const TABS: { id: PanelTab; label: string; icon: string }[] = [
@@ -30,6 +32,7 @@ const TABS: { id: PanelTab; label: string; icon: string }[] = [
   { id: 'study', label: 'Chat', icon: '💬' },
   { id: 'notes', label: 'Notes', icon: '✎' },
   { id: 'tools', label: 'Tools', icon: '⚙' },
+  { id: 'refs', label: 'Refs', icon: '🔗' },
 ];
 
 export function RightPanel({
@@ -43,6 +46,7 @@ export function RightPanel({
   chapter,
   highlights,
   notes,
+  isPremium,
   onHighlight,
   onSaveNote,
   onDeleteNote,
@@ -129,6 +133,9 @@ export function RightPanel({
             )}
             {activeTab === 'tools' && (
               <PanelTools book={book} chapter={chapter} />
+            )}
+            {activeTab === 'refs' && (
+              <PanelCrossReferences selectedVerse={selectedVerse} isPremium={isPremium} />
             )}
           </div>
         </>

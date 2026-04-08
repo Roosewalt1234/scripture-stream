@@ -4,7 +4,7 @@ import { Verse, Highlight, Note, Translation } from '@/types';
 import { bibleService } from '@/lib/bible/service';
 import { localStore } from '@/lib/storage/local';
 import { cloudStore } from '@/lib/storage/cloud';
-import { DEFAULT_TRANSLATION } from '@/lib/constants';
+import { DEFAULT_TRANSLATION, TRANSLATIONS } from '@/lib/constants';
 import { ReaderHeader } from './reader-header';
 import { Sidebar } from './sidebar';
 import { LiveConversation } from './live-conversation';
@@ -30,6 +30,16 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
   const [showLiveConvo, setShowLiveConvo] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<PanelTab>('ai');
+  const [parallelTranslation, setParallelTranslation] = useState<Translation | null>(null);
+  const [parallelVerses, setParallelVerses] = useState<Verse[]>([]);
+  const [parallelLoading, setParallelLoading] = useState(false);
+  const [showCollectionPicker, setShowCollectionPicker] = useState(false);
+  const [collectionVerse, setCollectionVerse] = useState<Verse | null>(null);
+  const [showVerseCard, setShowVerseCard] = useState(false);
+  const [verseCardVerse, setVerseCardVerse] = useState<Verse | null>(null);
+  const [wordStudyVerse, setWordStudyVerse] = useState<Verse | null>(null);
+  const [showWordStudy, setShowWordStudy] = useState(false);
+  const [showChapterSummary, setShowChapterSummary] = useState(false);
 
   // Load notes and highlights for current chapter
   useEffect(() => {
@@ -54,6 +64,14 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
       .then(v => { setVerses(v); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, [book, chapter, translation]);
+
+  useEffect(() => {
+    if (!parallelTranslation) { setParallelVerses([]); return; }
+    setParallelLoading(true);
+    bibleService.getChapter(book, chapter, parallelTranslation)
+      .then(v => { setParallelVerses(v); setParallelLoading(false); })
+      .catch(() => setParallelLoading(false));
+  }, [book, chapter, parallelTranslation]);
 
   async function handleHighlight(verse: Verse, color: string) {
     const verseNum = verse.number;
@@ -105,6 +123,19 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
     if (verse) { setSelectedVerse(verse); setActiveTab('notes'); setPanelOpen(true); }
   }
 
+  function handleAddToMemory(verse: Verse) {
+    fetch('/api/memory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ book, chapter, verse: verse.number, verseText: verse.text, translation }),
+    }).then(r => r.json()).then(d => { if (d.error) alert(d.error); else alert('Added to memory!'); });
+  }
+
+  function handleWordStudyVerse(verse: Verse) {
+    setWordStudyVerse(verse);
+    setShowWordStudy(true);
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar isOpen={sidebarOpen} currentBook={book} currentChapter={chapter} currentTranslation={translation} onTranslationChange={setTranslation} />
@@ -120,12 +151,39 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
             </div>
           </div>
 
+          {/* Parallel Bible — premium only */}
+          {isPremium && (
+            <div className="flex items-center gap-2 mb-4 p-2 bg-stone-50 rounded-lg border border-stone-200">
+              <span className="text-xs text-stone-500 font-medium">Parallel:</span>
+              <select
+                value={parallelTranslation ?? ''}
+                onChange={e => setParallelTranslation((e.target.value as Translation) || null)}
+                className="text-xs border border-stone-200 rounded px-2 py-1 bg-white text-stone-700 flex-1"
+              >
+                <option value="">— Off —</option>
+                {TRANSLATIONS.filter(t => t.id !== translation).map(t => (
+                  <option key={t.id} value={t.id}>{t.id.toUpperCase()} — {t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {isPremium && verses.length > 0 && (
+            <button
+              onClick={() => setShowChapterSummary(true)}
+              className="text-xs px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition mb-4"
+            >
+              ✦ Chapter Summary
+            </button>
+          )}
+
           {loading && <p className="text-stone-400">Loading…</p>}
           {error && <p className="text-red-500">{error}</p>}
 
           {!loading && !error && verses.map(verse => {
             const hl = highlights.find(h => h.verseId === verse.id);
             const note = notes.find(n => n.verseId === verse.id);
+            const pVerse = parallelVerses.find(v => v.number === verse.number);
             return (
               <div
                 key={verse.id}
@@ -134,7 +192,20 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
                 onClick={() => setSelectedVerse(selectedVerse?.id === verse.id ? null : verse)}
               >
                 <span className="text-xs text-stone-400 mr-2 select-none">{verse.number}</span>
-                <span className="text-stone-800">{verse.text}</span>
+                {parallelTranslation && pVerse ? (
+                  <div className="grid grid-cols-2 gap-3 mt-1">
+                    <div>
+                      <p className="text-xs text-stone-400 mb-1 font-medium uppercase">{translation}</p>
+                      <span className="text-stone-800">{verse.text}</span>
+                    </div>
+                    <div className="border-l border-stone-200 pl-3">
+                      <p className="text-xs text-amber-600 mb-1 font-medium uppercase">{parallelTranslation}</p>
+                      <span className="text-stone-700">{parallelLoading ? '…' : pVerse.text}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-stone-800">{verse.text}</span>
+                )}
                 {note?.content && (
                   <p className="mt-2 text-xs text-amber-700 italic border-l-2 border-amber-300 pl-2">{note.content}</p>
                 )}
@@ -143,13 +214,12 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
                     <button onClick={e => { e.stopPropagation(); setActiveTab('ai'); setPanelOpen(true); }} className="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition">✦ Explain</button>
                     <button onClick={e => { e.stopPropagation(); setActiveTab('notes'); setPanelOpen(true); }} className="text-xs px-2 py-1 bg-stone-100 rounded hover:bg-stone-200 transition">✎ Note</button>
                     {isPremium && (
-                      <button onClick={e => {
-                        e.stopPropagation();
-                        fetch('/api/memory', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ book, chapter, verse: verse.number, verseText: verse.text, translation }) })
-                          .then(r => r.json())
-                          .then(d => { if (d.error) alert(d.error); else alert('Added to memory!'); });
-                      }} className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded hover:bg-purple-200 transition">🧠 Memory</button>
+                      <>
+                        <button onClick={e => { e.stopPropagation(); handleAddToMemory(verse); }} className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded hover:bg-purple-200 transition">🧠 Memory</button>
+                        <button onClick={e => { e.stopPropagation(); setCollectionVerse(verse); setShowCollectionPicker(true); }} className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition">📚 Save</button>
+                        <button onClick={e => { e.stopPropagation(); setVerseCardVerse(verse); setShowVerseCard(true); }} className="text-xs px-2 py-1 bg-pink-100 text-pink-800 rounded hover:bg-pink-200 transition">🖼 Card</button>
+                        <button onClick={e => { e.stopPropagation(); handleWordStudyVerse(verse); }} className="text-xs px-2 py-1 bg-teal-100 text-teal-800 rounded hover:bg-teal-200 transition">📖 Words</button>
+                      </>
                     )}
                   </div>
                 )}
@@ -165,6 +235,7 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
         selectedVerse={selectedVerse} verses={verses}
         book={book} chapter={chapter}
         highlights={highlights} notes={notes}
+        isPremium={isPremium}
         onHighlight={handleHighlight} onSaveNote={handleSaveNote}
         onDeleteNote={handleDeleteNote} onEditNote={handleEditNote}
       />
