@@ -207,28 +207,40 @@ Example: {"summary":"...","keyThemes":["Faith","Redemption"],"reflectionQuestion
     }
   },
 
-  async getWordStudy(word: string, verseText: string, reference: string): Promise<
-    { originalWord: string; language: string; meaning: string; usages: { reference: string; context: string }[]; application: string }
-  > {
+  async getWordStudy(word: string, verseText: string, reference: string): Promise<{
+    word: string;
+    original: string;
+    language: string;
+    transliteration: string;
+    definition: string;
+    extendedMeaning: string;
+    relatedVerses: string[];
+  }> {
     const ai = getClient();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `Provide a word study for the word "${word}" in: "${verseText}" (${reference}).
-Return JSON (no markdown) with these exact keys:
-- "originalWord": the Greek or Hebrew original word with transliteration
-- "language": "Greek" or "Hebrew"
-- "meaning": 2-3 sentence explanation of the word's meaning and significance
-- "usages": array of 2-3 other Bible references where this word appears, each with "reference" and "context" (one sentence)
-- "application": one sentence on how understanding this word deepens faith
+      contents: `Do a word study for the word "${word}" as used in: "${verseText}" (${reference}).
 
-Example: {"originalWord":"ἀγάπη (agape)","language":"Greek","meaning":"...","usages":[{"reference":"1 Cor 13:4","context":"..."}],"application":"..."}`,
-      config: { temperature: 0.4, maxOutputTokens: 1000 },
+Return a JSON object (no markdown) with:
+- "word": the word as it appears in the text
+- "original": the Greek or Hebrew original word
+- "language": "Greek", "Hebrew", or "Aramaic"
+- "transliteration": phonetic pronunciation
+- "definition": core lexical definition (1-2 sentences)
+- "extendedMeaning": theological depth and nuance (2-3 sentences)
+- "relatedVerses": array of 3 other verse references where same original word appears (e.g. ["John 1:1", "Gen 1:1"])
+
+Example: {"word":"love","original":"ἀγάπη","language":"Greek","transliteration":"agapē","definition":"Unconditional, self-sacrificial love...","extendedMeaning":"Agape is distinct from philia (friendship)...","relatedVerses":["1 Cor 13:4","Rom 5:8","1 John 4:8"]}`,
+      config: { temperature: 0.3, maxOutputTokens: 700 },
     });
     try {
       const raw = (response.text ?? '{}').replace(/```json|```/g, '').trim();
       return JSON.parse(raw);
     } catch {
-      return { originalWord: word, language: 'Unknown', meaning: response.text ?? '', usages: [], application: '' };
+      return {
+        word, original: '', language: '', transliteration: '',
+        definition: response.text ?? '', extendedMeaning: '', relatedVerses: [],
+      };
     }
   },
 
