@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BIBLE_BOOKS, TRANSLATIONS } from '@/lib/constants';
 import { Translation } from '@/types';
@@ -17,9 +17,14 @@ export function Sidebar({ isOpen, currentBook, currentChapter, currentTranslatio
   const [activeTab, setActiveTab] = useState<'books' | 'translations'>('books');
   const [selectedBook, setSelectedBook] = useState(currentBook);
   const [testament, setTestament] = useState<'Old Testament' | 'New Testament'>('Old Testament');
+  const selectedRef = useRef<HTMLDivElement>(null);
 
   const filteredBooks = BIBLE_BOOKS.filter(b => b.category === testament);
-  const bookData = BIBLE_BOOKS.find(b => b.name === selectedBook);
+
+  // Scroll the expanded chapter grid into view when a book is selected
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [selectedBook]);
 
   function navigateToChapter(book: string, chapter: number) {
     router.push(`/read/${encodeURIComponent(book.toLowerCase().replace(/ /g, '-'))}/${chapter}`);
@@ -56,35 +61,46 @@ export function Sidebar({ isOpen, currentBook, currentChapter, currentTranslatio
               </button>
             ))}
           </div>
-          {/* Book list */}
-          <div className="px-3 pb-3 space-y-1">
-            {filteredBooks.map(book => (
-              <button
-                key={book.name}
-                onClick={() => setSelectedBook(book.name)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${selectedBook === book.name ? 'bg-amber-50 text-amber-800 font-medium' : 'text-stone-700 hover:bg-stone-50'}`}
-              >
-                {book.name}
-              </button>
-            ))}
-          </div>
-          {/* Chapter grid */}
-          {bookData && (
-            <div className="border-t border-stone-100 p-3">
-              <p className="text-xs font-medium text-stone-500 mb-2 uppercase tracking-wide">{selectedBook} — Chapters</p>
-              <div className="grid grid-cols-5 gap-1">
-                {Array.from({ length: bookData.chapters }, (_, i) => i + 1).map(ch => (
+
+          {/* Book list with inline chapter grid */}
+          <div className="px-3 pb-3 space-y-0.5">
+            {filteredBooks.map(book => {
+              const isSelected = selectedBook === book.name;
+              const bookData = isSelected ? BIBLE_BOOKS.find(b => b.name === book.name) : null;
+              return (
+                <div key={book.name} ref={isSelected ? selectedRef : undefined}>
                   <button
-                    key={ch}
-                    onClick={() => navigateToChapter(selectedBook, ch)}
-                    className={`py-1.5 text-xs rounded transition ${selectedBook === currentBook && ch === currentChapter ? 'bg-amber-600 text-white' : 'bg-stone-100 text-stone-700 hover:bg-amber-100'}`}
+                    onClick={() => setSelectedBook(isSelected ? '' : book.name)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition flex items-center justify-between ${isSelected ? 'bg-amber-50 text-amber-800 font-medium' : 'text-stone-700 hover:bg-stone-50'}`}
                   >
-                    {ch}
+                    <span>{book.name}</span>
+                    {isSelected && (
+                      <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                      </svg>
+                    )}
                   </button>
-                ))}
-              </div>
-            </div>
-          )}
+
+                  {/* Inline chapter grid, directly below the book */}
+                  {isSelected && bookData && (
+                    <div className="mx-1 mb-1 p-2 bg-amber-50 rounded-lg border border-amber-100">
+                      <div className="grid grid-cols-5 gap-1">
+                        {Array.from({ length: bookData.chapters }, (_, i) => i + 1).map(ch => (
+                          <button
+                            key={ch}
+                            onClick={() => navigateToChapter(book.name, ch)}
+                            className={`py-1.5 text-xs rounded transition ${book.name === currentBook && ch === currentChapter ? 'bg-amber-600 text-white font-medium' : 'bg-white text-stone-700 hover:bg-amber-100 border border-stone-100'}`}
+                          >
+                            {ch}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
