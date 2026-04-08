@@ -25,6 +25,7 @@ export function ReaderHeader({ onMenuToggle, onLiveStudy }: ReaderHeaderProps) {
       <nav className="hidden md:flex items-center gap-1">
         <a href="/dashboard" className={`px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-stone-100 transition ${text}`}>Dashboard</a>
         <a href="/study" className={`px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-stone-100 transition ${text}`}>Study</a>
+        {isPaid && <a href="/collections" className={`px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-stone-100 transition ${text}`}>📚 Collections</a>}
         <a href={isPaid ? '/morning-card' : '/pricing?feature=morning-card'} className={`px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-stone-100 transition ${text} ${!isPaid ? 'opacity-60' : ''}`}>
           🌅 {!isPaid && '🔒'}
         </a>

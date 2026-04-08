@@ -9,6 +9,10 @@ import { ReaderHeader } from './reader-header';
 import { Sidebar } from './sidebar';
 import { LiveConversation } from './live-conversation';
 import { RightPanel, PanelTab } from './right-panel';
+import { CollectionPickerModal } from '@/components/study/collection-picker-modal';
+import { ChapterSummaryModal } from './chapter-summary-modal';
+import { WordStudyPopover } from './word-study-popover';
+import { VerseCardModal } from './verse-card-modal';
 
 interface ReaderViewProps {
   initialBook: string;
@@ -40,6 +44,8 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
   const [wordStudyVerse, setWordStudyVerse] = useState<Verse | null>(null);
   const [showWordStudy, setShowWordStudy] = useState(false);
   const [showChapterSummary, setShowChapterSummary] = useState(false);
+  const [wordStudyWord, setWordStudyWord] = useState('');
+  const [wordPickMode, setWordPickMode] = useState<string | null>(null);
 
   // Load notes and highlights for current chapter
   useEffect(() => {
@@ -203,6 +209,30 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
                       <span className="text-stone-700">{parallelLoading ? '…' : pVerse.text}</span>
                     </div>
                   </div>
+                ) : wordPickMode === verse.id ? (
+                  <span>
+                    {verse.text.split(/(\s+)/).map((token, i) =>
+                      /\s+/.test(token) ? (
+                        <span key={i}>{token}</span>
+                      ) : (
+                        <button
+                          key={i}
+                          onClick={e => {
+                            e.stopPropagation();
+                            const clean = token.replace(/[^a-zA-Z']/g, '');
+                            if (!clean) return;
+                            setWordStudyWord(clean);
+                            setWordStudyVerse(verse);
+                            setShowWordStudy(true);
+                            setWordPickMode(null);
+                          }}
+                          className="hover:bg-teal-100 hover:text-teal-800 rounded px-0.5 transition cursor-pointer underline-offset-2 hover:underline"
+                        >
+                          {token}
+                        </button>
+                      )
+                    )}
+                  </span>
                 ) : (
                   <span className="text-stone-800">{verse.text}</span>
                 )}
@@ -218,7 +248,15 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
                         <button onClick={e => { e.stopPropagation(); handleAddToMemory(verse); }} className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded hover:bg-purple-200 transition">🧠 Memory</button>
                         <button onClick={e => { e.stopPropagation(); setCollectionVerse(verse); setShowCollectionPicker(true); }} className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition">📚 Save</button>
                         <button onClick={e => { e.stopPropagation(); setVerseCardVerse(verse); setShowVerseCard(true); }} className="text-xs px-2 py-1 bg-pink-100 text-pink-800 rounded hover:bg-pink-200 transition">🖼 Card</button>
-                        <button onClick={e => { e.stopPropagation(); handleWordStudyVerse(verse); }} className="text-xs px-2 py-1 bg-teal-100 text-teal-800 rounded hover:bg-teal-200 transition">📖 Words</button>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setWordPickMode(wordPickMode === verse.id ? null : verse.id);
+                          }}
+                          className={`text-xs px-2 py-1 rounded transition ${wordPickMode === verse.id ? 'bg-teal-600 text-white' : 'bg-teal-100 text-teal-800 hover:bg-teal-200'}`}
+                        >
+                          📖 {wordPickMode === verse.id ? 'Tap a word…' : 'Words'}
+                        </button>
                       </>
                     )}
                   </div>
@@ -242,6 +280,38 @@ export function ReaderView({ initialBook, initialChapter, isPremium }: ReaderVie
 
       {showLiveConvo && (
         <LiveConversation currentBook={book} currentChapter={chapter} selectedVerse={selectedVerse ?? undefined} onClose={() => setShowLiveConvo(false)} />
+      )}
+
+      {showCollectionPicker && (
+        <CollectionPickerModal
+          verse={collectionVerse}
+          translation={translation}
+          onClose={() => { setShowCollectionPicker(false); setCollectionVerse(null); }}
+        />
+      )}
+
+      {showChapterSummary && (
+        <ChapterSummaryModal
+          book={book}
+          chapter={chapter}
+          verses={verses}
+          onClose={() => setShowChapterSummary(false)}
+        />
+      )}
+
+      {showWordStudy && (
+        <WordStudyPopover
+          verse={wordStudyVerse}
+          clickedWord={wordStudyWord}
+          onClose={() => { setShowWordStudy(false); setWordStudyVerse(null); setWordStudyWord(''); }}
+        />
+      )}
+
+      {showVerseCard && verseCardVerse && (
+        <VerseCardModal
+          verse={verseCardVerse}
+          onClose={() => { setShowVerseCard(false); setVerseCardVerse(null); }}
+        />
       )}
     </div>
   );
