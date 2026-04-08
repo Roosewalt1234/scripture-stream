@@ -160,6 +160,78 @@ export const geminiService = {
     return response.text ?? 'Unable to generate prayer.';
   },
 
+  async findCrossReferences(verseText: string, reference: string): Promise<
+    { reference: string; text: string; connection: string }[]
+  > {
+    const ai = getClient();
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Find 4-6 Bible cross-references for: "${verseText}" (${reference}).
+Return a JSON array (no markdown) of objects with these exact keys:
+- "reference": book chapter:verse (e.g. "Romans 5:8")
+- "text": the verse text (one sentence)
+- "connection": brief explanation of the thematic link (10-15 words)
+
+Example: [{"reference":"Romans 5:8","text":"But God demonstrates...","connection":"Both verses show God's love expressed through sacrifice"}]`,
+      config: { temperature: 0.3, maxOutputTokens: 1200 },
+    });
+    try {
+      const raw = (response.text ?? '[]').replace(/```json|```/g, '').trim();
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  },
+
+  async generateChapterSummary(book: string, chapter: number, verseTexts: string[]): Promise<
+    { summary: string; keyThemes: string[]; reflectionQuestions: string[] }
+  > {
+    const ai = getClient();
+    const chapterText = verseTexts.join(' ');
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Summarize ${book} chapter ${chapter}. Chapter text: "${chapterText.slice(0, 3000)}..."
+Return JSON (no markdown) with these exact keys:
+- "summary": 3-4 sentence overview of the chapter
+- "keyThemes": array of 3-5 key themes (strings)
+- "reflectionQuestions": array of 3 reflection questions for personal application
+
+Example: {"summary":"...","keyThemes":["Faith","Redemption"],"reflectionQuestions":["How does this...?"]}`,
+      config: { temperature: 0.5, maxOutputTokens: 1000 },
+    });
+    try {
+      const raw = (response.text ?? '{}').replace(/```json|```/g, '').trim();
+      return JSON.parse(raw);
+    } catch {
+      return { summary: response.text ?? '', keyThemes: [], reflectionQuestions: [] };
+    }
+  },
+
+  async getWordStudy(word: string, verseText: string, reference: string): Promise<
+    { originalWord: string; language: string; meaning: string; usages: { reference: string; context: string }[]; application: string }
+  > {
+    const ai = getClient();
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Provide a word study for the word "${word}" in: "${verseText}" (${reference}).
+Return JSON (no markdown) with these exact keys:
+- "originalWord": the Greek or Hebrew original word with transliteration
+- "language": "Greek" or "Hebrew"
+- "meaning": 2-3 sentence explanation of the word's meaning and significance
+- "usages": array of 2-3 other Bible references where this word appears, each with "reference" and "context" (one sentence)
+- "application": one sentence on how understanding this word deepens faith
+
+Example: {"originalWord":"ἀγάπη (agape)","language":"Greek","meaning":"...","usages":[{"reference":"1 Cor 13:4","context":"..."}],"application":"..."}`,
+      config: { temperature: 0.4, maxOutputTokens: 1000 },
+    });
+    try {
+      const raw = (response.text ?? '{}').replace(/```json|```/g, '').trim();
+      return JSON.parse(raw);
+    } catch {
+      return { originalWord: word, language: 'Unknown', meaning: response.text ?? '', usages: [], application: '' };
+    }
+  },
+
   async generateReadingPlan(
     goal: string,
     durationDays: number,
