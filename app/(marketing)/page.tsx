@@ -205,16 +205,16 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center space-y-12">
           <Link href="/" className="flex items-center gap-4 text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
             <Image src="/logo.png" alt="" width={40} height={40} className="w-10 h-10 object-contain" />
-            ScriptureStream
+            Scripture Stream
           </Link>
           <div className="flex flex-wrap justify-center gap-6 md:gap-10 font-sans text-xs md:text-sm text-[#6d5b4b] uppercase font-bold tracking-widest">
             <Link href="/" className="hover:text-black">Home</Link>
-            <a href="#" className="hover:text-black">Study Guides</a>
-            <a href="#" className="hover:text-black">Community</a>
-            <a href="#" className="hover:text-black">About</a>
+            <Link href="/pricing" className="hover:text-black">Pricing</Link>
+            <Link href="/about" className="hover:text-black">About</Link>
+            <Link href="/read/john/3" className="hover:text-black">Start Reading</Link>
           </div>
           <div className="text-[10px] text-[#6d5b4b] font-sans opacity-40 uppercase tracking-widest">
-            © 2025 ScriptureStream. Built for wisdom and peace.
+            © 2026 Scripture Stream. Built for wisdom and peace.
           </div>
         </div>
       </footer>
